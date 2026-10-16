@@ -1,0 +1,12 @@
+{
+  "name": "esp-rc",
+  "private": true,
+  "scripts": {
+    "setup": "npm --prefix frontend install",
+    "dev:all": "node dev.mjs",
+    "dev:backend": "node --watch backend/server.js",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "start": "node backend/server.js"
+  }
+}

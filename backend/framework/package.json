@@ -1,0 +1,9 @@
+{
+  "name": "mini-express",
+  "version": "1.0.0",
+  "description": "Express-style framework: OOP, CommonJS, zero dependencies",
+  "main": "index.js",
+  "scripts": { "start": "node examples/app.js" },
+  "engines": { "node": ">=16" },
+  "license": "MIT"
+}

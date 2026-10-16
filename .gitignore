@@ -1,0 +1,5 @@
+node_modules/
+frontend/dist/
+backend/firmware/.tmp/
+ino/*/build/
+.env

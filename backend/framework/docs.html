@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mini-express docs</title>
+<style>
+  :root { --bg:#fff; --fg:#1f2328; --muted:#656d76; --code:#f6f8fa; --line:#d8dee4; --accent:#0969da; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0d1117; --fg:#e6edf3; --muted:#8b949e; --code:#161b22; --line:#30363d; --accent:#58a6ff; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.6 system-ui, sans-serif; display:flex; }
+  nav { width:210px; padding:24px 16px; border-right:1px solid var(--line); position:sticky; top:0; height:100vh; overflow-y:auto; flex-shrink:0; }
+  nav h2 { font-size:16px; margin:0 0 12px; }
+  nav a { display:block; padding:4px 0; color:var(--muted); text-decoration:none; font-size:14px; }
+  nav a:hover { color:var(--accent); }
+  main { max-width:760px; padding:24px 32px 80px; min-width:0; }
+  h1 { margin-top:0; }
+  h2 { margin-top:40px; padding-top:8px; border-top:1px solid var(--line); }
+  h3 { margin-top:24px; }
+  pre { background:var(--code); border:1px solid var(--line); border-radius:6px; padding:12px 14px; overflow-x:auto; font-size:14px; line-height:1.5; }
+  code { background:var(--code); padding:1px 5px; border-radius:4px; font-family:ui-monospace, Menlo, Consolas, monospace; font-size:90%; }
+  pre code { background:none; padding:0; font-size:inherit; }
+  table { border-collapse:collapse; width:100%; font-size:14px; display:block; overflow-x:auto; }
+  th, td { text-align:left; padding:6px 10px; border:1px solid var(--line); }
+  th { background:var(--code); }
+  @media (max-width:700px) { body { display:block; } nav { width:auto; height:auto; position:static; border-right:0; border-bottom:1px solid var(--line); } main { padding:16px; } }
+</style>
+</head>
+<body>
+
+<nav>
+  <h2>mini-express</h2>
+  <a href="#start">Getting started</a>
+  <a href="#routing">Routing</a>
+  <a href="#router">Routers &amp; groups</a>
+  <a href="#middleware">Middleware</a>
+  <a href="#body">Body parsing</a>
+  <a href="#static">Static files</a>
+  <a href="#ws">WebSocket</a>
+  <a href="#errors">Error handling</a>
+  <a href="#req-res">Request &amp; Response</a>
+  <a href="#structure">File structure</a>
+</nav>
+
+<main>
+<h1>mini-express</h1>
+<p>A small Express-style framework. Plain JavaScript, CommonJS, class-based, no dependencies.</p>
+
+<h2 id="start">Getting started</h2>
+<p>Copy the folder into your project and require it.</p>
+<pre><code>const mini = require('./mini-express');
+
+const app = mini();
+app.get('/', (req, res) =&gt; res.send('Hello'));
+app.listen(3000);</code></pre>
+
+<h2 id="routing">Routing</h2>
+<pre><code>app.get('/users', handler);
+app.post('/users', handler);
+app.put('/users/:id', handler);
+app.patch('/users/:id', handler);
+app.delete('/users/:id', handler);
+app.all('/any', handler);          // every method</code></pre>
+
+<h3>Path patterns</h3>
+<table>
+  <tr><th>Pattern</th><th>Matches</th><th>Result</th></tr>
+  <tr><td><code>/users/:id</code></td><td>/users/7</td><td><code>req.params.id = '7'</code></td></tr>
+  <tr><td><code>/posts/:slug?</code></td><td>/posts and /posts/hello</td><td>optional param</td></tr>
+  <tr><td><code>/files/*</code></td><td>/files/a/b.txt</td><td><code>req.params['*'] = 'a/b.txt'</code></td></tr>
+</table>
+
+<h3>Chain methods on one path</h3>
+<pre><code>app.route('/items')
+  .get((req, res) =&gt; res.json([]))
+  .post((req, res) =&gt; res.status(201).json(req.body));</code></pre>
+
+<h3>Multiple handlers</h3>
+<pre><code>app.get('/secret', checkLogin, checkAdmin, (req, res) =&gt; res.send('ok'));</code></pre>
+
+<h2 id="router">Routers &amp; groups</h2>
+<pre><code>const { Router } = require('./mini-express');
+
+const users = new Router();
+users.get('/', (req, res) =&gt; res.json([]));
+users.get('/:id', (req, res) =&gt; res.json({ id: req.params.id }));
+
+app.use('/users', users);
+
+// or inline
+app.group('/api/v1', (api) =&gt; {
+  api.get('/ping', (req, res) =&gt; res.json({ pong: true }));
+});</code></pre>
+
+<h2 id="middleware">Middleware</h2>
+<p>A middleware receives <code>(req, res, next)</code>. Call <code>next()</code> to continue, or send a response to stop.</p>
+
+<h3>1. Function</h3>
+<pre><code>app.use((req, res, next) =&gt; {
+  console.log(req.method, req.url);
+  next();
+});</code></pre>
+
+<h3>2. Class</h3>
+<pre><code>const { Middleware } = require('./mini-express');
+
+class Auth extends Middleware {
+  constructor(token) { super(); this.token = token; }
+  handle(req, res, next) {
+    if (req.get('authorization') !== 'Bearer ' + this.token) return res.sendStatus(401);
+    next();
+  }
+}
+
+app.use('/admin', Auth.create('secret'));   // returns a function
+app.use('/admin', new Auth('secret'));      // objects with handle() also work</code></pre>
+
+<h3>3. Plugin</h3>
+<p>A function that receives the whole app. Use it to add routes, middleware or properties.</p>
+<pre><code>function health(app, opts = {}) {
+  app.get(opts.path || '/health', (req, res) =&gt; res.json({ ok: true }));
+}
+app.plugin(health, { path: '/status' });</code></pre>
+
+<h3>Built-in</h3>
+<table>
+  <tr><th>Middleware</th><th>Purpose</th></tr>
+  <tr><td><code>mini.logger()</code></td><td>Logs method, url, status, time</td></tr>
+  <tr><td><code>mini.cors(options)</code></td><td>CORS headers; answers OPTIONS</td></tr>
+  <tr><td><code>mini.static(dir)</code></td><td>Serves files from a folder</td></tr>
+  <tr><td><code>mini.json()</code>, <code>mini.urlencoded()</code>, <code>mini.text()</code>, <code>mini.raw()</code></td><td>Body parsers</td></tr>
+</table>
+
+<h2 id="body">Body parsing</h2>
+<pre><code>app.use(mini.json({ limit: '2mb' }));   // default limit 1mb
+app.use(mini.urlencoded());
+
+app.post('/items', (req, res) =&gt; res.json(req.body));</code></pre>
+<p>Invalid JSON gives a 400 error. A body over the limit gives 413. The raw buffer is kept in <code>req.rawBody</code>.</p>
+<p>Custom format:</p>
+<pre><code>const { createParser } = mini.bodyParser;
+const xml = createParser('xml', (buf) =&gt; myXmlParse(buf.toString()), {});
+app.use(xml());</code></pre>
+
+<h2 id="static">Static files</h2>
+<pre><code>const path = require('path');
+
+app.use(mini.static(path.join(__dirname, 'public')));
+app.use('/assets', mini.static(path.join(__dirname, 'public'), { index: 'home.html' }));</code></pre>
+<p>Add file types in <code>lib/utils/mime.js</code>.</p>
+
+<h2 id="ws">WebSocket</h2>
+<pre><code>app.ws('/chat/:room', (socket, req) =&gt; {
+  socket.room = req.params.room;
+  socket.json({ welcome: socket.room });
+
+  socket.on('message', (msg) =&gt; {
+    // send to everyone else in the room
+    app.wss.broadcast(msg, (c) =&gt; c !== socket &amp;&amp; c.room === socket.room);
+  });
+
+  socket.on('close', () =&gt; console.log('left'));
+});</code></pre>
+
+<table>
+  <tr><th>API</th><th>Description</th></tr>
+  <tr><td><code>socket.send(data)</code></td><td>Send string or Buffer</td></tr>
+  <tr><td><code>socket.json(obj)</code></td><td>Send an object as JSON</td></tr>
+  <tr><td><code>socket.close(code)</code></td><td>Close the connection</td></tr>
+  <tr><td><code>socket.on('message' | 'close' | 'error', fn)</code></td><td>Events</td></tr>
+  <tr><td><code>app.wss.clients</code></td><td>Set of all connected sockets</td></tr>
+  <tr><td><code>app.wss.broadcast(data, filter?)</code></td><td>Send to all, or to those where <code>filter(client)</code> is true</td></tr>
+</table>
+
+<p>Browser test:</p>
+<pre><code>const ws = new WebSocket('ws://localhost:3000/chat/general');
+ws.onmessage = (e) =&gt; console.log(e.data);
+ws.onopen = () =&gt; ws.send('hello');</code></pre>
+
+<h2 id="errors">Error handling</h2>
+<p>Errors thrown in handlers, including <code>async</code> ones, go to the error handler automatically.</p>
+<pre><code>app.get('/boom', async () =&gt; {
+  throw Object.assign(new Error('Bad input'), { status: 400 });
+});
+
+// error middleware: 4 arguments, register after your routes
+app.use((err, req, res, next) =&gt; {
+  res.status(err.status || 500).json({ error: err.message });
+});</code></pre>
+<p>Override the defaults:</p>
+<pre><code>app.onNotFound = (req, res) =&gt; res.status(404).json({ error: 'Not found' });
+app.onError = (err, req, res) =&gt; res.status(500).send('Oops');</code></pre>
+
+<h2 id="req-res">Request &amp; Response</h2>
+<table>
+  <tr><th>Request</th><th>Description</th></tr>
+  <tr><td><code>req.params</code></td><td>Path params</td></tr>
+  <tr><td><code>req.query</code></td><td>Parsed query string</td></tr>
+  <tr><td><code>req.body</code></td><td>Parsed body (needs a body parser)</td></tr>
+  <tr><td><code>req.path</code>, <code>req.baseUrl</code></td><td>URL path, mounted prefix</td></tr>
+  <tr><td><code>req.get(name)</code></td><td>Read a header</td></tr>
+  <tr><td><code>req.is('json')</code></td><td>Check Content-Type</td></tr>
+  <tr><td><code>req.ip</code></td><td>Client IP</td></tr>
+</table>
+<br>
+<table>
+  <tr><th>Response</th><th>Description</th></tr>
+  <tr><td><code>res.status(code)</code></td><td>Set status (chainable)</td></tr>
+  <tr><td><code>res.send(body)</code></td><td>String, Buffer or object</td></tr>
+  <tr><td><code>res.json(obj)</code></td><td>JSON response</td></tr>
+  <tr><td><code>res.sendStatus(code)</code></td><td>Status with its standard text</td></tr>
+  <tr><td><code>res.set(name, value)</code>, <code>res.type(t)</code></td><td>Headers</td></tr>
+  <tr><td><code>res.redirect(url, code?)</code></td><td>Redirect (default 302)</td></tr>
+</table>
+<p>To add your own helpers, edit <code>lib/http/request.js</code> and <code>lib/http/response.js</code>.</p>
+
+<h2 id="structure">File structure</h2>
+<pre><code>mini-express/
+├── index.js                 entry point
+├── lib/
+│   ├── application.js       Application (extends Router)
+│   ├── router/              Router + Layer (path matching)
+│   ├── http/                Request, Response
+│   ├── middleware/          base, logger, cors, static
+│   ├── bodyparser/          json, urlencoded, text, raw
+│   ├── websocket/           server, connection, frame codec
+│   └── utils/               bytes, mime
+└── examples/app.js</code></pre>
+</main>
+
+</body>
+</html>

@@ -1,0 +1,119 @@
+export interface TelemetryData {
+  distance: number;
+  irLeft: boolean;
+  irRight: boolean;
+  servoAngle: number;
+  batteryPct: number;
+  batteryVolts: number;
+  uptime: string;
+  driveMode: 'MANUAL' | 'AUTOMATIC';
+  latency: number;
+}
+
+export interface WifiNetwork {
+  ssid: string;
+  rssi: number;
+  isEncrypted: boolean;
+}
+
+export interface WifiStatus {
+  enabled: boolean;
+  connected: boolean;
+  ssid: string;
+  ip: string;
+  rssi: number;
+}
+
+export type DriveMode = 'MANUAL' | 'AUTOMATIC';
+export type ControlMode = 'joystick' | 'dpad' | 'differential';
+
+export interface LogEntry {
+  id: number;
+  timestamp: string;
+  message: string;
+  type: 'info' | 'warn' | 'error' | 'success';
+}
+
+export interface SensorStatus {
+  id: string;
+  name: string;
+  pin: string;
+  type: string;
+  status: 'ONLINE' | 'ACTIVE' | 'NORMAL' | 'DETECTED' | 'CLEAR' | 'OFFLINE' | 'WARNING';
+  value: string;
+  details: string;
+}
+
+export type OtaStatus = 'IDLE' | 'CHECKING' | 'AVAILABLE' | 'UPDATING' | 'SUCCESS' | 'ERROR';
+
+export interface FirmwareVersionInfo {
+  version: string;
+  channel?: string;
+  isStable?: boolean;
+  device?: string;
+  size: number;
+  sha256: string;
+  releasedAt: string;
+  url?: string;
+  description?: string;
+}
+
+export interface FirmwareLatestResponse {
+  device: string;
+  channel: string;
+  version: string;
+  firmware: string;
+  sha256: string;
+  size: number;
+  description?: string;
+  releasedAt: string;
+}
+
+export interface FirmwareVersionsResponse {
+  device: string;
+  versions: FirmwareVersionInfo[];
+}
+
+export interface Esp32VersionsListResponse {
+  type?: string;
+  versions: (string | FirmwareVersionInfo)[];
+}
+
+export interface Esp32FirmwareCheckResponse {
+  current?: string;
+  stable?: string;
+  updateAvailable?: boolean;
+  url?: string;
+  size?: number;
+  sha256?: string;
+  notes?: string;
+  releasedAt?: string;
+}
+
+export interface CustomAlertConfig {
+  title?: string;
+  message: string;
+  type?: 'warning' | 'error' | 'info' | 'bluetooth' | 'success';
+  confirmText?: string;
+  cancelText?: string;
+  onConfirm?: () => void;
+  onCancel?: () => void;
+}
+
+export interface Esp32FirmwareSessionResponse {
+  code?: string;
+  sessionId?: string;
+  sessionCode?: string;
+  type?: string;
+  version?: string;
+  size?: number;
+  sha256?: string;
+  expiresIn?: number;
+  ws?: string;
+  wsUrl?: string;
+  socketUrl?: string;
+  download?: string;
+}
+
+
+
