@@ -1,23 +1,23 @@
 // Application Dependency
-const mini = require('./framework');
+const mini = require('./app/framework');
 const path = require('path');
 const crypto = require('crypto');
 const fs = require('fs');
 
 // Application Files
-const FirmwareStore = require('./services/FirmwareStore');
-const SessionStore = require('./services/SessionStore');
-const DownloadController = require('./controllers/DownloadController');
-const AdminAuth = require('./middleware/AdminAuth');
-const AdminController = require('./controllers/AdminController');
-const downloadRoutes = require('./routes/download');
-const adminRoutes = require('./routes/admin');
+const FirmwareStore = require('./app/services/FirmwareStore');
+const SessionStore = require('./app/services/SessionStore');
+const DownloadController = require('./app/controllers/DownloadController');
+const AdminAuth = require('./app/middleware/AdminAuth');
+const AdminController = require('./app/controllers/AdminController');
+const downloadRoutes = require('./app/routes/download');
+const adminRoutes = require('./app/routes/admin');
 
 
 // Application Configuration
 const app = mini();
 
-const store = new FirmwareStore(path.join(__dirname, 'firmware'));
+const store = new FirmwareStore(path.join(__dirname, 'app', 'firmware'));
 const sessions = new SessionStore({ ttl: 2 * 60 * 1000 });   // device has 2 min to start after the code is issued
 const downloads = new DownloadController({ wss: app.wss, store, sessions, speedLimit: 20 });
 
