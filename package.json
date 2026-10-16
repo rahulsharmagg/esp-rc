@@ -7,6 +7,7 @@
     "dev:backend": "node --watch backend/server.js",
     "dev:frontend": "npm --prefix frontend run dev",
     "build": "npm --prefix frontend run build",
+    "build:branch": "node scripts/build.js",
     "start": "node backend/server.js"
   }
 }
