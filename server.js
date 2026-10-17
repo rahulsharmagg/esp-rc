@@ -15,6 +15,16 @@ const downloadRoutes = require('./app/routes/download');
 const adminRoutes = require('./app/routes/admin');
 
 
+// Create a write stream to a local log file
+const logStream = fs.createWriteStream(path.join(__dirname, 'debug.log'), { flags: 'a' });
+
+// Overwrite the global console.log function
+console.log = function (message) {
+    const timestamp = new Date().toISOString();
+    const output = typeof message === 'object' ? JSON.stringify(message) : message;
+    logStream.write(`[${timestamp}] ${output}\n`);
+};
+
 // Application Configuration
 const app = mini();
 
