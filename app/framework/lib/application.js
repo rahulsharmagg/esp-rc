@@ -61,6 +61,7 @@ class Application extends Router {
 
   _handleUpgrade(req, socket) {
     const pathname = req.path;
+    req.app = this;
     for (const layer of this.wsRoutes) {
       const m = layer.match(pathname);
       if (!m) continue;

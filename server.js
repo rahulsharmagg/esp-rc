@@ -10,6 +10,7 @@ const SessionStore = require('./app/services/SessionStore');
 const DownloadController = require('./app/controllers/DownloadController');
 const AdminAuth = require('./app/middleware/AdminAuth');
 const AdminController = require('./app/controllers/AdminController');
+const ConnectController = require('./app/controllers/ConnectController');
 const downloadRoutes = require('./app/routes/download');
 const adminRoutes = require('./app/routes/admin');
 
@@ -23,9 +24,11 @@ const downloads = new DownloadController({ wss: app.wss, store, sessions, speedL
 
 app.use(mini.json());
 app.use(mini.logger());
+app.set('trustProxy', process.env.TRUST_PROXY === '1');
 
 app.use('/firmware', downloadRoutes(downloads));   // HTTP
 app.ws('/progress/:code', downloads.watch);        // WebSocket
+app.ws('/connect/:code', new ConnectController().handle); // Device Relay
 
 // Applicatoin Status
 app.get('/ping', (req, res) => {
@@ -56,20 +59,6 @@ app.ws('/live', (socket) => {
 
 const API_PREFIXES = ['/firmware', '/admin/api', '/progress', '/versions', '/api'];
 app.use(mini.spa(path.join(__dirname, 'public'), { exclude: API_PREFIXES }));
-
-
-app.wss.on('connection', (socket, req) => {
-  console.log('connected from', req.ip, '| online:', app.wss.clients.size);
-});
-
-app.wss.on('disconnect', (socket, code) => {
-  console.log('disconnected, code', code, '| online:', app.wss.clients.size);
-});
-
-app.wss.on('message', (socket, data) => {
-  console.log('any client sent:', data);   // sees every message from every client
-});
-
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Listening on http://localhost:${port}`));

@@ -12,11 +12,13 @@ class Connection extends EventEmitter {
     this.socket = socket;
     this.maxPayload = maxPayload;
     this.open = true;
+    this.alive = true;
     this._buffer = Buffer.alloc(0);
     this._fragments = [];
     this._fragOpcode = 0;
 
     socket.on('data', (chunk) => this._onData(chunk));
+    socket.on('end', () => { this._onClosed(1006); socket.end(); });
     socket.on('close', () => this._onClosed(1006));
     socket.on('error', (err) => {
       if (this.listenerCount('error')) this.emit('error', err); // never crash on a dropped client
@@ -35,6 +37,10 @@ class Connection extends EventEmitter {
 
   ping() {
     this._write(OPCODES.PING, Buffer.alloc(0));
+  }
+
+  terminate() {
+    this.socket.destroy();
   }
 
   close(code = 1000) {
@@ -56,6 +62,7 @@ class Connection extends EventEmitter {
     while (this.open && (frame = decode(this._buffer))) {
       this._buffer = this._buffer.subarray(frame.length);
       if (frame.payload.length > this.maxPayload) return this.close(1009);
+      this.alive = true;
       this._onFrame(frame);
     }
   }
@@ -68,7 +75,6 @@ class Connection extends EventEmitter {
         this.emit('ping', payload);
         return this._write(OPCODES.PONG, payload);
       case OPCODES.PONG:
-        this.alive = true;
         this.emit('pong', payload);
         return;
       default: {

@@ -18,7 +18,8 @@ class Request extends http.IncomingMessage {
 
   get ip() {
     const fwd = this.headers['x-forwarded-for'];
-    return fwd ? fwd.split(',')[0].trim() : this.socket.remoteAddress;
+    const trust = this.app && this.app.settings && this.app.settings.trustProxy;
+    return trust && fwd ? fwd.split(',').pop().trim() : this.socket.remoteAddress;
   }
 
   /** req.get('Content-Type') */
